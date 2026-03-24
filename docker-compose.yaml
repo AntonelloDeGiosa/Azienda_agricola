@@ -1,0 +1,76 @@
+services:
+  web:
+    build: . 
+    container_name: php-azienda_agricola
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - db
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html
+    networks:
+      - app-network
+
+  db:
+    image: mysql:8.0
+    container_name: azienda-agricola-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: myapp_db
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-azienda_agricola
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # 2FAUTH 
+  2fauth:
+    image: 2fauth/2fauth
+    container_name: 2fauth-app-azienda_agricola
+    restart: always
+    ports:
+      - "8082:8000"
+    environment:
+      - APP_NAME=2FAuth-AziendaAgricola
+      - DB_CONNECTION=mysql 
+      - DB_HOST=db 
+      - DB_PORT=3306 
+      - DB_DATABASE=2fauth_db # Il nuovo database separato
+      - DB_USERNAME=root      # Usiamo root così ha i permessi per scriverci dentro
+      - DB_PASSWORD=rootpassword
+      - APP_KEY=base64:eDdKSm+YE0kAvZbbVtrNM/6YKRYjA1fUGo7HmSrerdM=
+      - APP_URL=http://localhost:8082 
+      - APP_TIMEZONE=Europe/Rome
+    volumes:
+      - 2fauth_data:/srv/2FAuth/storage
+    depends_on:
+      - db
+    networks:
+      - app-network 
+
+volumes:  
+  db_data:
+  2fauth_data:
+
+networks:
+  app-network:
+    driver: bridge
