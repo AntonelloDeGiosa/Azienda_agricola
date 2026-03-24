@@ -1,16 +1,15 @@
 <?php
 session_start();
 
-// 1. PROTEZIONE DELLA PAGINA
+// PROTEZIONE DELLA PAGINA
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header('Location: login.php');
     exit;
 }
 
-// Abilitazione eccezioni per mysqli
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// 2. CONNESSIONE AL DATABASE (MYSQLI)
 $host = 'db'; 
 $dbname = 'myapp_db';
 $username = 'myuser';
@@ -25,9 +24,9 @@ try {
 
 $ordini = [];
 
-// 3. RECUPERO ID CLIENTE E I SUOI ORDINI
+// RECUPERO ID CLIENTE E I SUOI ORDINI
 try {
-    // Prima troviamo l'ID del cliente loggato
+    
     $stmt_cliente = $conn->prepare("SELECT id_cliente FROM CLIENTE WHERE nickname = ?");
     $stmt_cliente->bind_param("s", $_SESSION['nickname']);
     $stmt_cliente->execute();
@@ -38,7 +37,7 @@ try {
     if ($cliente) {
         $id_cliente = $cliente['id_cliente'];
 
-        // Recuperiamo tutti gli scontrini di questo cliente, dal più recente al più vecchio
+        // Recuperiamo tutti gli acquisti
         $stmt_vendite = $conn->prepare("
             SELECT id_vendita, data_acquisto, totale_pagato 
             FROM VENDITA 
@@ -65,7 +64,7 @@ try {
             $res_dettagli = $stmt_dettagli->get_result();
             $dettagli = $res_dettagli->fetch_all(MYSQLI_ASSOC);
             
-            // Salviamo tutto in un array strutturato
+            
             $ordini[] = [
                 'info' => $scontrino,
                 'prodotti' => $dettagli

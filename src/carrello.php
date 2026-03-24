@@ -6,20 +6,16 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['ruolo'] === 'admin') {
     exit;
 }
 
-// Inizializza il carrello se non esiste
 if (!isset($_SESSION['carrello'])) {
     $_SESSION['carrello'] = [];
 }
 
-// LOGICA DI AGGIORNAMENTO O RIMOZIONE DAL CARRELLO
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_prodotto_mod = $_POST['id_prodotto'];
     
     if (isset($_POST['rimuovi'])) {
-        // Elimina l'elemento dal carrello
         unset($_SESSION['carrello'][$id_prodotto_mod]);
     } elseif (isset($_POST['aggiorna'])) {
-        // Aggiorna la quantità
         $nuova_q = floatval($_POST['quantita']);
         if ($nuova_q > 0) {
             $_SESSION['carrello'][$id_prodotto_mod] = $nuova_q;
@@ -27,7 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($_SESSION['carrello'][$id_prodotto_mod]);
         }
     }
-    // Ricarica la pagina per evitare l'invio doppio del form
     header('Location: carrello.php');
     exit;
 }
@@ -67,7 +62,6 @@ $totale_carrello = 0.0;
     <?php else: ?>
         
         <?php foreach ($_SESSION['carrello'] as $id_p => $quantita): 
-            // Recupero i dati aggiornati del prodotto dal DB
             $st = $conn->prepare("SELECT p.nome, p.unita_misura, s.prezzo 
                                   FROM PRODOTTO p 
                                   JOIN STORICO_PREZZI s ON p.id_prodotto = s.id_prodotto 

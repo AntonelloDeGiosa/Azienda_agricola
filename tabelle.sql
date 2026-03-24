@@ -1,9 +1,6 @@
--- Creazione del database (se non esiste)
-CREATE DATABASE IF NOT EXISTS myapp_db;
-USE myapp_db;
 
 -- ==========================================
--- 1. TABELLE ANAGRAFICHE (Senza chiavi esterne)
+-- 1. TABELLE ANAGRAFICHE 
 -- ==========================================
 
 CREATE TABLE CATEGORIA (
@@ -91,11 +88,10 @@ CREATE TABLE DETTAGLIO_VENDITA (
     FOREIGN KEY (id_prodotto) REFERENCES PRODOTTO(id_prodotto) ON UPDATE CASCADE
 );
 
--- N.B. I TRIGGER sono stati appositamente rimossi in quanto la logica 
--- di storicizzazione (chiusura prezzo precedente) verrà gestita dal codice PHP
+
 
 -- ==========================================
--- 4. DATI INIZIALI E POPOLAMENTO (Seeding)
+-- 4. DATI INIZIALI E POPOLAMENTO 
 -- ==========================================
 
 INSERT INTO LUOGO (nome, tipo) VALUES ('Dispensa',        'conservazione');
@@ -113,9 +109,9 @@ INSERT INTO CATEGORIA (nome) VALUES
 INSERT INTO PRODOTTO (nome, tipologia, unita_misura, id_categoria) VALUES 
 ('Mele Rosse', 'Fresco', 'kg', 1),                                
 ('Miele di Millefiori (Vasetto 500g)', 'Lavorato', 'pezzo', 2),   
-('Miele di Acacia (Secchio 5kg)', 'Riserva', 'kg', 2),            
+('Miele di Acacia (Vasetto 200g)', 'Lavorato', 'pezzo', 2),            
 ('Olio EVO (Latta 5L)', 'Lavorato', 'pezzo', 3),                  
-('Olio EVO (Bidone 50L)', 'Riserva', 'litro', 3),                 
+('Vino (Bottiglia 750ml)', 'Riserva', 'pezzo', 3),                 
 ('Marmellata di Fichi (Vasetto)', 'Lavorato', 'pezzo', 4);        
 
 -- Popolamento Storico Prezzi iniziale
@@ -126,3 +122,15 @@ INSERT INTO STORICO_PREZZI (id_prodotto, prezzo) VALUES
 (4, 45.00),  
 (5, 8.50),   
 (6, 4.00);
+
+INSERT INTO PRODUZIONE_GIACENZA (id_prodotto, id_luogo, data_lavorazione, quantita_iniziale, giacenza_attuale) VALUES 
+(1, 1, '2025-09-01', 100.000, 100.000),  
+(2, 1, '2025-08-15', 50.000, 50.000),    
+(3, 1, '2025-07-20', 20.000, 20.000),    
+(4, 1, '2025-08-01', 30.000, 30.000),    
+(5, 1, '2025-06-10', 40.000, 40.000),    
+(6, 1, '2025-09-05', 60.000, 60.000);
+
+INSERT INTO CLIENTE (nominativo, nickname, dati_contatto, password_hash, totp_secret, ruolo) VALUES 
+('Amministratore', 'admin', 'admin@gmail.com', '$2y$10$L.Y5Xt9.fS7Qyazfjbiv6.oT76DjQskFAnKNYoni6/smASmGcqg..','5FNTRGFIOFMOA5HLGSEWG7EOCT3VKP552OFB3SLYO6ZUYH4LA4VGLKZFG325OSAMKESV3VKLRUQMWXLM3RNOXJMSUZ2WOLVAIA7KFRI','admin'),
+('Antonio Linciano', 'linci00', 'linci@example.it', '$2y$10$UNYn7oZ3HcHme5VnEFdY8eSg6qx0jY.S2qZvAEiha8iCMcisLOKrW','3HYZW6U4UOUUAL5755RJLRRJURP6NQEULKVHD4WLDTI2O4K52GNWVTV6MTSHJSQPGQ5G7IJ3XEF37EFY5XRPAL56QJ64NLBZWFTGV2A=','cliente');

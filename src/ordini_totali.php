@@ -5,7 +5,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['ruolo'] !== 'admin') {
     exit;
 }
 
-// Abilitazione eccezioni per mysqli
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $host = 'db'; $dbname = 'myapp_db'; $username = 'myuser'; $db_password = 'mypassword';
@@ -18,14 +18,13 @@ try {
 }
 
 try {
-    // 1. Estrazione di tutti gli ordini
+    
     $query = "SELECT v.id_vendita, v.data_acquisto, v.totale_pagato, c.nickname 
               FROM VENDITA v JOIN CLIENTE c ON v.id_cliente = c.id_cliente 
               ORDER BY v.data_acquisto DESC";
     $res_ordini = $conn->query($query);
     $ordini = $res_ordini->fetch_all(MYSQLI_ASSOC);
 
-    // 2. Preparazione della query per i dettagli (verrà eseguita nel ciclo HTML)
     $stmt_d = $conn->prepare("SELECT d.quantita, d.prezzo_applicato, p.nome, p.unita_misura 
                               FROM DETTAGLIO_VENDITA d 
                               JOIN PRODOTTO p ON d.id_prodotto = p.id_prodotto 
@@ -66,7 +65,6 @@ try {
                     
                     <ul class="lista-prod">
                         <?php 
-                        // Esecuzione della prepared statement per i dettagli dell'ordine corrente
                         $stmt_d->bind_param("i", $o['id_vendita']);
                         $stmt_d->execute();
                         $res_d = $stmt_d->get_result();
@@ -87,7 +85,6 @@ try {
         <?php endif; ?>
         
         <?php 
-        // Chiudiamo lo statement alla fine del ciclo
         if (isset($stmt_d)) $stmt_d->close(); 
         ?>
     </div>

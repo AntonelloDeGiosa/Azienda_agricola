@@ -1,10 +1,9 @@
 <?php
 session_start();
-require 'vendor/autoload.php'; // Serve per la libreria TOTP
+require 'vendor/autoload.php'; 
 
 use OTPHP\TOTP;
 
-// Genera una chiave TOTP fresca per il form di registrazione
 $totp   = TOTP::create();
 $secret = $totp->getSecret();
 
@@ -13,13 +12,10 @@ $errore    = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // Abilita le eccezioni per mysqli
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-    // ==========================================
-    // CONNESSIONE AL DATABASE (MYSQLI)
-    // ==========================================
-    $host = 'db'; // Nome del container Docker
+    
+    $host = 'db'; 
     $dbname = 'myapp_db';
     $username = 'myuser';
     $db_password = 'mypassword';
@@ -31,14 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die("Errore di connessione al database: " . $e->getMessage());
     }
 
-    // 1. Raccolta dati pulita 
     $nominativo      = trim(isset($_POST['nome']) ? $_POST['nome'] : '');
     $nickname        = trim(isset($_POST['nickname'])  ? $_POST['nickname'] : '');
     $contatto        = trim(isset($_POST['contatto'])  ? $_POST['contatto'] : '');
     $password        = isset($_POST['password'])  ? $_POST['password'] : ''; 
     $secret_inviato  = trim(isset($_POST['secret'])    ? $_POST['secret'] : '');
 
-    // 2. Validazione
     if (empty($nominativo) || empty($nickname) || empty($password) || empty($secret_inviato)) {
         $errore = 'Nome, nickname, password e chiave TOTP sono obbligatori.';
     } elseif (strlen($password) < 8) {
@@ -48,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         
         try {
-            // 3. Controlla unicità nickname
             $chk = $conn->prepare('SELECT id_cliente FROM CLIENTE WHERE nickname = ?');
             $chk->bind_param("s", $nickname);
             $chk->execute();
@@ -57,20 +50,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($risultato->num_rows > 0) {
                 $errore = 'Questo nickname è già in uso. Scegline un altro.';
             } else {
-                // 4. Cripta la password
                 $password_hash = password_hash($password, PASSWORD_BCRYPT);
                 $ruolo = 'cliente';
 
-                // 5. Inserisci l'utente nel database
                 $stmt = $conn->prepare('INSERT INTO CLIENTE (nominativo, nickname, dati_contatto, password_hash, totp_secret, ruolo) VALUES (?, ?, ?, ?, ?, ?)');
-                // 'ssssss' indica che stiamo passando 6 stringhe
                 $stmt->bind_param("ssssss", $nominativo, $nickname, $contatto, $password_hash, $secret_inviato, $ruolo);
                 $stmt->execute();
                 
-                // Aggiorniamo il messaggio di successo
                 $messaggio = 'Registrazione completata con successo! Ora puoi effettuare il login.';
                 
-                // Opzionale: puoi svuotare le variabili per ripulire il form
                 $nominativo = $nickname = $contatto = '';
             }
             $chk->close();
@@ -81,7 +69,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Chiudiamo la connessione a fine operazione
     if(isset($conn)) $conn->close();
 }
 ?>

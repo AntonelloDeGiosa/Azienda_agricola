@@ -1,7 +1,6 @@
 <?php
 session_start();
 
-// 1. CONTROLLI DI SICUREZZA
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header('Location: login.php');
     exit;
@@ -12,10 +11,8 @@ if (!isset($_SESSION['carrello']) || count($_SESSION['carrello']) === 0) {
     exit;
 }
 
-// Abilita le eccezioni per mysqli (fondamentale per far funzionare il blocco try-catch)
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// 2. CONNESSIONE MYSQLI
 $conn = new mysqli('db', 'myuser', 'mypassword', 'myapp_db');
 if ($conn->connect_error) {
     die("Connessione fallita: " . $conn->connect_error);
@@ -27,28 +24,24 @@ $totale_da_pagare = 0.0;
 $errore = '';
 
 try {
-    // Inizio transazione
     $conn->begin_transaction();
 
-    // A. Recupero ID Cliente
     $stmt_c = $conn->prepare("SELECT id_cliente FROM CLIENTE WHERE nickname = ?");
-    $stmt_c->bind_param("s", $_SESSION['nickname']); // 's' sta per stringa
+    $stmt_c->bind_param("s", $_SESSION['nickname']); 
     $stmt_c->execute();
     $row_c = $stmt_c->get_result()->fetch_row();
     $id_cliente = $row_c[0];
     $stmt_c->close();
 
-    // B. Controllo disponibilità e calcolo totale
     foreach ($_SESSION['carrello'] as $id_p => $q_richiesta) {
         
-        // Recuperiamo il NOME del prodotto e il PREZZO attuale
         $st_info = $conn->prepare("
             SELECT p.nome, s.prezzo 
             FROM PRODOTTO p 
             JOIN STORICO_PREZZI s ON p.id_prodotto = s.id_prodotto 
             WHERE p.id_prodotto = ? AND s.data_fine_validita IS NULL
         ");
-        $st_info->bind_param("i", $id_p); // 'i' sta per integer
+        $st_info->bind_param("i", $id_p); 
         $st_info->execute();
         $info_prodotto = $st_info->get_result()->fetch_assoc();
         $st_info->close();
@@ -56,7 +49,6 @@ try {
         $nome_prodotto = $info_prodotto['nome'];
         $prezzo_attuale = $info_prodotto['prezzo'];
 
-        // Controllo giacenza totale per questo prodotto
         $st_giac = $conn->prepare("SELECT SUM(giacenza_attuale) FROM PRODUZIONE_GIACENZA WHERE id_prodotto = ?");
         $st_giac->bind_param("i", $id_p);
         $st_giac->execute();
@@ -71,19 +63,15 @@ try {
         $totale_da_pagare += ($prezzo_attuale * $q_richiesta);
     }
 
-    // C. Creazione testata VENDITA (id_luogo = 2)
     $id_luogo = 2;
     $stmt_v = $conn->prepare("INSERT INTO VENDITA (id_cliente, id_luogo, totale_calcolato, totale_pagato) VALUES (?, ?, ?, ?)");
-    // 'iidd' = intero, intero, double, double
     $stmt_v->bind_param("iidd", $id_cliente, $id_luogo, $totale_da_pagare, $totale_da_pagare);
     $stmt_v->execute();
-    $id_nuova_vendita = $conn->insert_id; // in mysqli si usa insert_id
+    $id_nuova_vendita = $conn->insert_id;
     $stmt_v->close();
 
-    // D. Dettaglio Vendita e SCARICO MAGAZZINO (FIFO)
     foreach ($_SESSION['carrello'] as $id_p => $q_da_scaricare) {
         
-        // Prendiamo il prezzo applicato
         $st_p = $conn->prepare("SELECT prezzo FROM STORICO_PREZZI WHERE id_prodotto = ? AND data_fine_validita IS NULL");
         $st_p->bind_param("i", $id_p);
         $st_p->execute();
@@ -91,14 +79,11 @@ try {
         $p_applicato = $row_p[0];
         $st_p->close();
 
-        // Inserimento riga di dettaglio
         $st_det = $conn->prepare("INSERT INTO DETTAGLIO_VENDITA (id_vendita, id_prodotto, quantita, prezzo_applicato) VALUES (?, ?, ?, ?)");
-        // 'iidd' = intero, intero, double, double
         $st_det->bind_param("iidd", $id_nuova_vendita, $id_p, $q_da_scaricare, $p_applicato);
         $st_det->execute();
         $st_det->close();
 
-        // Scarico dai lotti
         $st_lotti = $conn->prepare("SELECT id_produzione, giacenza_attuale FROM PRODUZIONE_GIACENZA WHERE id_prodotto = ? AND giacenza_attuale > 0 ORDER BY data_lavorazione ASC");
         $st_lotti->bind_param("i", $id_p);
         $st_lotti->execute();
@@ -125,13 +110,11 @@ try {
         }
     }
 
-    // Se tutto va bene, conferma
     $conn->commit();
     unset($_SESSION['carrello']);
     $ordine_completato = true;
 
 } catch (Exception $e) {
-    // In caso di errore, annulla tutte le query fatte finora
     $conn->rollback();
     $errore = $e->getMessage();
 }

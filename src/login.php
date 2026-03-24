@@ -8,13 +8,11 @@ $errore = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // Abilitazione eccezioni per mysqli
+   
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-    // ==========================================
-    // CONNESSIONE AL DATABASE (MYSQLI)
-    // ==========================================
-    $host = 'db'; // Nome del container Docker
+  
+    $host = 'db'; 
     $dbname = 'myapp_db';
     $username = 'myuser';
     $db_password = 'mypassword';
@@ -25,9 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         die("Errore di connessione al database: " . $e->getMessage());
     }
-    // ==========================================
-
-    // Raccogliamo i dati dal form
+    
     $nickname = isset($_POST['nickname']) ? trim($_POST['nickname']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     $totp_inserito = isset($_POST['totp']) ? trim($_POST['totp']) : '';
@@ -37,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         
         try {
-            // 1. Cerchiamo l'utente nel database tramite il nickname
+           
             $stmt = $conn->prepare('SELECT id_cliente, password_hash, totp_secret, ruolo FROM CLIENTE WHERE nickname = ?');
             $stmt->bind_param("s", $nickname);
             $stmt->execute();
@@ -45,23 +41,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $risultato->fetch_assoc();
             $stmt->close();
 
-            // 2. Se l'utente esiste, verifichiamo la password
             if ($user && password_verify($password, $user['password_hash'])) {
                 
-                // 3. Verifichiamo il codice 2FA (TOTP)
+                
                 $totp = TOTP::create($user['totp_secret']);
                 if ($totp->verify($totp_inserito)) {
                     
-                    // LOGIN SUCCESSO: Salviamo i dati nella Sessione
+                    
                     $_SESSION['logged_in'] = true;
                     $_SESSION['id_utente'] = $user['id_cliente'];
-                    $_SESSION['ruolo'] = $user['ruolo']; // 'admin' o 'cliente'
+                    $_SESSION['ruolo'] = $user['ruolo']; 
                     $_SESSION['nickname'] = $nickname;
 
-                    // Chiudiamo la connessione prima del redirect
+                
                     $conn->close();
 
-                    // Reindirizziamo in base al ruolo
+                   
                     if ($user['ruolo'] === 'admin') {
                         header('Location: dashboard_admin.php');
                     } else {
@@ -79,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errore = "Errore durante l'accesso: " . $e->getMessage();
         }
     }
-    // Chiudi la connessione se c'è stato un errore (altrimenti è già chiusa al successo)
+   
     if(isset($conn) && $conn->ping()) {
         $conn->close();
     }

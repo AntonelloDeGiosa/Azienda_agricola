@@ -1,16 +1,15 @@
 <?php
 session_start();
 
-// 1. PROTEZIONE (Solo Admin)
+
 if (!isset($_SESSION['logged_in']) || $_SESSION['ruolo'] !== 'admin') {
     header('Location: catalogo.php'); 
     exit;
 }
 
-// Abilitazione eccezioni per mysqli
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// 2. CONNESSIONE AL DATABASE (MYSQLI)
+
 $host = 'db'; 
 $dbname = 'myapp_db';
 $username = 'myuser';
@@ -26,7 +25,6 @@ try {
 $messaggio = '';
 $errore = '';
 
-// 3. REGISTRAZIONE DI UN NUOVO LOTTO DI PRODUZIONE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aggiungi_produzione'])) {
     $id_prodotto = $_POST['id_prodotto'];
     $id_luogo = $_POST['id_luogo'];
@@ -35,12 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aggiungi_produzione']
 
     if (!empty($id_prodotto) && !empty($id_luogo) && !empty($data_lavorazione) && $quantita > 0) {
         try {
-            // Quando creo un lotto, la giacenza attuale è uguale alla quantità iniziale prodotta
+           
             $stmt = $conn->prepare("
                 INSERT INTO PRODUZIONE_GIACENZA (id_prodotto, id_luogo, data_lavorazione, quantita_iniziale, giacenza_attuale) 
                 VALUES (?, ?, ?, ?, ?)
             ");
-            // 'iisdd' = integer, integer, string (date), double, double
+         
             $stmt->bind_param("iisdd", $id_prodotto, $id_luogo, $data_lavorazione, $quantita, $quantita);
             $stmt->execute();
             $stmt->close();
@@ -54,16 +52,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aggiungi_produzione']
     }
 }
 
-// 4. RECUPERO DATI PER I FORM E LA TABELLA
+
 try {
-    // Liste a discesa
+   
     $res_prodotti = $conn->query("SELECT id_prodotto, nome, unita_misura FROM PRODOTTO ORDER BY nome");
     $prodotti = $res_prodotti->fetch_all(MYSQLI_ASSOC);
 
     $res_luoghi = $conn->query("SELECT id_luogo, nome, tipo FROM LUOGO ORDER BY nome");
     $luoghi = $res_luoghi->fetch_all(MYSQLI_ASSOC);
 
-    // Recupero lo storico delle produzioni e le giacenze attuali
+    
     $res_lotti = $conn->query("
         SELECT pg.id_produzione, p.nome AS prodotto, p.unita_misura, l.nome AS luogo, pg.data_lavorazione, pg.quantita_iniziale, pg.giacenza_attuale
         FROM PRODUZIONE_GIACENZA pg

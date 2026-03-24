@@ -4,7 +4,6 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['ruolo'] !== 'admin') {
     header('Location: catalogo.php'); exit;
 }
 
-// Abilita le eccezioni per mysqli (serve per i blocchi try/catch)
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $conn = new mysqli('db', 'myuser', 'mypassword', 'myapp_db');
@@ -15,33 +14,27 @@ if ($conn->connect_error) {
 $messaggio = ''; $errore = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. AGGIUNGI CATEGORIA
     if (isset($_POST['aggiungi_categoria'])) {
         $nome = trim($_POST['nome_categoria']);
         if($nome) {
             $stmt = $conn->prepare("INSERT INTO CATEGORIA (nome) VALUES (?)");
-            $stmt->bind_param("s", $nome); // 's' = string
+            $stmt->bind_param("s", $nome); 
             $stmt->execute();
             $stmt->close();
             $messaggio = "Categoria '$nome' creata!";
         }
     }
-    // 2. AGGIUNGI PRODOTTO
     if (isset($_POST['aggiungi_prodotto'])) {
         try {
             $conn->begin_transaction();
             
-            // Inserisci prodotto
             $stmt1 = $conn->prepare("INSERT INTO PRODOTTO (nome, tipologia, unita_misura, id_categoria) VALUES (?, ?, ?, ?)");
-            // 'sssi' = string, string, string, integer
             $stmt1->bind_param("sssi", $_POST['nome_prod'], $_POST['tipologia'], $_POST['unita'], $_POST['id_cat']);
             $stmt1->execute();
-            $id_p = $conn->insert_id; // mysqli syntax per lastInsertId()
+            $id_p = $conn->insert_id; 
             $stmt1->close();
             
-            // Inserisci prezzo nello storico
             $stmt2 = $conn->prepare("INSERT INTO STORICO_PREZZI (id_prodotto, prezzo) VALUES (?, ?)");
-            // 'id' = integer, double
             $stmt2->bind_param("id", $id_p, $_POST['prezzo']);
             $stmt2->execute();
             $stmt2->close();
@@ -53,20 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errore = "Errore: " . $e->getMessage(); 
         }
     }
-    // 3. AGGIORNA PREZZO
     if (isset($_POST['aggiorna_prezzo'])) {
         try {
             $conn->begin_transaction();
             
-            // Chiudi il vecchio prezzo
             $stmt_upd = $conn->prepare("UPDATE STORICO_PREZZI SET data_fine_validita = CURRENT_TIMESTAMP WHERE id_prodotto = ? AND data_fine_validita IS NULL");
             $stmt_upd->bind_param("i", $_POST['id_prod_mod']);
             $stmt_upd->execute();
             $stmt_upd->close();
             
-            // Inserisci il nuovo prezzo
             $stmt_ins = $conn->prepare("INSERT INTO STORICO_PREZZI (id_prodotto, prezzo) VALUES (?, ?)");
-            // 'id' = integer, double
             $stmt_ins->bind_param("id", $_POST['id_prod_mod'], $_POST['nuovo_prezzo']);
             $stmt_ins->execute();
             $stmt_ins->close();
@@ -80,7 +69,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Estrazione dati per i menu a tendina usando fetch_all(MYSQLI_ASSOC)
 $res_cat = $conn->query("SELECT * FROM CATEGORIA ORDER BY nome");
 $categorie = $res_cat->fetch_all(MYSQLI_ASSOC);
 

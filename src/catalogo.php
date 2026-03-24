@@ -10,7 +10,6 @@ if ($conn->connect_error) {
 }
 
 
-// Query aggiornata: calcola anche la giacenza totale disponibile per ogni prodotto!
 $query = "SELECT p.*, s.prezzo, c.nome as categoria_nome,
           COALESCE((SELECT SUM(giacenza_attuale) FROM PRODUZIONE_GIACENZA WHERE id_prodotto = p.id_prodotto), 0) as giacenza_totale
           FROM PRODOTTO p 
